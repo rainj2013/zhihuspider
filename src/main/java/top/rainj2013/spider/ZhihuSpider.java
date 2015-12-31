@@ -125,7 +125,7 @@ public class ZhihuSpider {
 			System.out.println("请求失败");
 		}
 		if(set == null){
-			set = new HashSet<String>();
+			return;
 		}
 		ExecutorService executorService = Executors.newCachedThreadPool();
 		int size =set.size();
@@ -169,7 +169,7 @@ public class ZhihuSpider {
 	public void init() {
 		try {
 			login("email", "password");
-			CaptureFollows("ma-bing-nan-8");
+			CaptureFollows("sijichun");
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
