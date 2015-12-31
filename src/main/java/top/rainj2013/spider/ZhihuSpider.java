@@ -125,11 +125,7 @@ public class ZhihuSpider {
 			System.out.println("请求失败");
 		}
 		if(set == null){
-			try {
-				set = 	getFollowList(uid);
-			} catch (Exception e) {
-				System.out.println("请求失败");
-			}
+			set = new HashSet<String>();
 		}
 		ExecutorService executorService = Executors.newCachedThreadPool();
 		int size =set.size();
