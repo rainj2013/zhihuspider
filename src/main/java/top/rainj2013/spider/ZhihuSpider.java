@@ -7,6 +7,7 @@ import java.io.InputStream;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Scanner;
 import java.util.Set;
@@ -20,6 +21,7 @@ import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 import org.junit.Test;
+import org.nutz.dao.Cnd;
 import org.nutz.dao.impl.NutDao;
 import org.nutz.lang.Strings;
 
@@ -82,7 +84,7 @@ public class ZhihuSpider {
 		System.out.println(HttpTookit.doPost(LOGINURL, params));
 	}
 
-	public void getMessage(String uid) throws Exception{
+	public void getMessage(String uid) throws Exception {
 		String url = "https://www.zhihu.com/people/" + uid + "/about";
 		String html = HttpTookit.doGet(url, null);
 		Document doc = Jsoup.parse(html);
@@ -104,7 +106,7 @@ public class ZhihuSpider {
 		dao.insert(user);
 	}
 
-	public Set<String> getFollowList(String uid) throws Exception{
+	public Set<String> getFollowList(String uid) throws Exception {
 		Set<String> follows = new HashSet<String>();
 		String url = "https://www.zhihu.com/people/" + uid + "/followees";
 		String html = HttpTookit.doGet(url, null);
@@ -117,33 +119,33 @@ public class ZhihuSpider {
 		return follows;
 	}
 
-	public void CaptureFollows(String uid){
+	public void CaptureFollows(String uid) {
 		Set<String> set = null;
 		try {
 			set = getFollowList(uid);
 		} catch (Exception e1) {
 			System.out.println("请求失败");
 		}
-		if(set == null){
+		if (set == null) {
 			return;
 		}
 		ExecutorService executorService = Executors.newCachedThreadPool();
-		int size =set.size();
+		int size = set.size();
 		int index = 0;
 		Iterator<String> iterator = set.iterator();
-		
-		while(iterator.hasNext()){
+
+		while (iterator.hasNext()) {
 			final String follow = iterator.next();
-			System.out.println(index++ + "/"+size);
+			System.out.println(index++ + "/" + size);
 			if (!Strings.isEmpty(redis.get(follow))) {
-				System.out.println("用户："+follow+"已存在");
+				System.out.println("用户：" + follow + "已存在");
 				iterator.remove();
 				continue;
 			}
 			executorService.submit(new Runnable() {
 				@Override
-				public void run(){
-					System.out.println(Thread.currentThread()+"正在抓取"+follow);
+				public void run() {
+					System.out.println(Thread.currentThread() + "正在抓取" + follow);
 					try {
 						getMessage(follow);
 					} catch (Exception e) {
@@ -159,9 +161,6 @@ public class ZhihuSpider {
 			System.out.println("请求超时");
 		}
 		executorService.shutdown();
-		for(String follow : set){
-			CaptureFollows(follow);
-		}
 		System.out.println("end!");
 	}
 
@@ -169,9 +168,18 @@ public class ZhihuSpider {
 	public void init() {
 		try {
 			login("email", "password");
-			CaptureFollows("sijichun");
+			
+			while (true) {
+				List<User> users = dao.query(User.class,
+						Cnd.where(null).limit(1, 10).orderBy("capturetime", "desc"));
+				for (User user : users)
+					CaptureFollows(user.getUid());
+				System.out.println("完成一轮抓取..");
+			}
+			
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
+		
 	}
 }

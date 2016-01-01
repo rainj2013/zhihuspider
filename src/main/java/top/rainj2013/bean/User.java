@@ -1,5 +1,7 @@
 package top.rainj2013.bean;
 
+import java.util.Date;
+
 import org.nutz.dao.entity.annotation.Column;
 import org.nutz.dao.entity.annotation.Table;
 
@@ -33,6 +35,8 @@ public class User {
 	private String collections;
 	@Column
 	private String logs;
+	@Column
+	private Date captureTime;
 	
 	public String getUid() {
 		return uid;
@@ -118,6 +122,13 @@ public class User {
 	public void setLogs(String logs) {
 		this.logs = logs;
 	}
+	public Date getCaptureTime() {
+		return captureTime;
+	}
+	public void setCaptureTime(Date captureTime) {
+		this.captureTime = captureTime;
+	}
+	
 	public User(){}
 	public User(String uid, String username, String bio, String employment, String position, String education,
 			String edu_extra, String followees, String followers, String asks, String answers, String posts,
@@ -137,6 +148,7 @@ public class User {
 		this.posts = posts;
 		this.collections = collections;
 		this.logs = logs;
+		this.captureTime = new Date();
 	}
 	@Override
 	public String toString() {
