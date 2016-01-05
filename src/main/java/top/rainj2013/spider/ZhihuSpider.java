@@ -91,6 +91,9 @@ public class ZhihuSpider {
 		Document doc = Jsoup.parse(html);
 		String username = doc.select("a[class=name]").html();
 		String bio = doc.select("span[class=bio]").html();
+		if(bio.contains("href")){
+			bio = doc.select("span[class=bio]").select("a").attr("href").replace("target=http%3A//", "");
+		}
 		String employment = doc.select("span[class=employment item]").attr("title");
 		String position = doc.select("span[class=position item]").attr("title");
 		String education = doc.select("span[class=education item]").attr("title");
@@ -107,9 +110,9 @@ public class ZhihuSpider {
 		dao.insert(user);
 	}
 
-	public Set<String> getFollowList(String uid) throws Exception {
+	public Set<String> getFollowList(String uid,String follow) throws Exception {
 		Set<String> follows = new HashSet<String>();
-		String url = "https://www.zhihu.com/people/" + uid + "/followees";
+		String url = "https://www.zhihu.com/people/" + uid + follow;
 		String html = HttpTookit.doGet(url, null);
 		Document doc = Jsoup.parse(html);
 		Elements eles = doc.select("h2[class=zm-list-content-title]");
@@ -123,7 +126,8 @@ public class ZhihuSpider {
 	public void CaptureFollows(String uid) {
 		Set<String> set = null;
 		try {
-			set = getFollowList(uid);
+			set = getFollowList(uid,"/followees");
+			set.addAll(getFollowList(uid,"/followers"));
 		} catch (Exception e1) {
 			System.out.println("请求失败");
 		}
@@ -144,11 +148,11 @@ public class ZhihuSpider {
 				public void run() {
 					System.out.println(Thread.currentThread() + "正在抓取" + follow);
 					try {
+						redis.set(follow, follow);
 						getMessage(follow);
 					} catch (Exception e) {
 						e.printStackTrace();
 					}
-					redis.set(follow, follow);
 				}
 			});
 		}
@@ -164,9 +168,11 @@ public class ZhihuSpider {
 	public void init() {
 		try {
 			login("email", "password");
-			int size = 0,newUser =10;
+			int size = 0,newUser =1000;
 			while (true) {
 				size = dao.count(User.class);
+				if(newUser>1000)
+					newUser = 1000;
 				List<User> users = dao.query(User.class,
 						Cnd.where(null).limit(1, newUser).orderBy("capturetime", "desc"));
 				ExecutorService exec = Executors.newCachedThreadPool();
@@ -176,11 +182,11 @@ public class ZhihuSpider {
 				while (!exec.isTerminated()) {
 					Lang.sleep(1);
 				}
+				Lang.sleep(5*1000);
 				newUser = dao.count(User.class)-size;
 				if(newUser<=0)
 					break;
 				System.out.println("完成一轮抓取，抓到"+newUser+"个用户，休息片刻");
-				Lang.sleep(5*1000);
 			}
 			System.out.println("end");
 		} catch (Exception e) {
